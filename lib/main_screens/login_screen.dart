@@ -28,7 +28,7 @@ class LoginScreen extends StatelessWidget {
                     width: double.infinity,
                     height: 55,
                     child: ElevatedButton(
-                      onPressed: () => Navigator.pushReplacementNamed(context, '/'),
+                      onPressed: () => Navigator.pushReplacementNamed(context, '/dashboard'),
                       style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFFFFE382), elevation: 0, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20))),
                       child: const Text("Entrar", style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold)),
                     ),

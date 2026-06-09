@@ -29,7 +29,7 @@ class RegisterScreen extends StatelessWidget {
                     width: double.infinity,
                     height: 55,
                     child: ElevatedButton(
-                      onPressed: () => Navigator.pushNamed(context, '/'),
+                      onPressed: () => Navigator.pushNamed(context, '/dashboard'),
                       style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFFFFB7A2), elevation: 0, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20))),
                       child: const Text("Registrarme", style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold)),
                     ),
