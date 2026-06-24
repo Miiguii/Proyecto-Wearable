@@ -6,7 +6,7 @@ class BentoScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    const String rutaLogo = 'assets/images/bento_logo.png';
+    const String rutaLogo = 'assets/imagenes/Logo2.png';
 
     return Scaffold(
       backgroundColor: const Color(0xFFF5F5F0),
@@ -30,7 +30,7 @@ class BentoScreen extends StatelessWidget {
                         rutaLogo,
                         height: 120,
                         errorBuilder: (context, error, stackTrace) => 
-                          const Icon(Icons.fastfood, size: 80, color: Colors.orange),
+                          const Icon(Icons.fastfood, size: 80, color: Color.fromARGB(255, 0, 81, 255)),
                       ),
                       const SizedBox(height: 20),
                       const Text(
@@ -54,7 +54,7 @@ class BentoScreen extends StatelessWidget {
                   child: const Column(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      Text("BentoHabit", style: TextStyle(fontSize: 32, fontWeight: FontWeight.w900, color: Color(0xFF0D253F))),
+                      Text("GOALIFY", style: TextStyle(fontSize: 32, fontWeight: FontWeight.w900, color: Color(0xFF0D253F))),
                       SizedBox(height: 10),
                       Text("¡Hola! Estás a un paso de construir\ntus mejores hábitos", textAlign: TextAlign.center, style: TextStyle(fontSize: 16, color: Color(0xFF2D3436))),
                     ],

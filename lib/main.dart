@@ -4,6 +4,7 @@ import 'main_screens/welcome.dart';
 import 'main_screens/login_screen.dart';
 import 'main_screens/register_screen.dart';
 import 'screens/dashboard.dart';
+//import 'screens/habitos.dart';
 
 void main() {
   runApp(const MyApp());
@@ -15,7 +16,7 @@ class MyApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'BentoHabit',
+      title: 'GOALIFY',
       debugShowCheckedModeBanner: false,
       theme: ThemeData(
         useMaterial3: true,
@@ -28,6 +29,7 @@ class MyApp extends StatelessWidget {
         '/login_screen': (context) => const LoginScreen(),
         '/register_screen': (context) => const RegisterScreen(),
         '/dashboard': (context) => const DashboardScreen(),
+        
       },
     );
   }
