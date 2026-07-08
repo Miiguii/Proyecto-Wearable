@@ -1,6 +1,8 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
-import 'package:watch_connectivity/watch_connectivity.dart';
+import '../services/ble_server_service.dart';
 import 'habitos.dart'; 
 import 'metas.dart';
 import 'stats.dart';
@@ -16,24 +18,31 @@ class DashboardScreen extends StatefulWidget {
 class _DashboardScreenState extends State<DashboardScreen> {
   int _selectedIndex = 0;
 
-  final WatchConnectivity _watch = WatchConnectivity();
-  
+  // El teléfono es el SERVIDOR GATT; el reloj (goalify_watch) es el cliente.
+  final BleServerService _bleServer = BleServerService();
+  StreamSubscription<Map<String, dynamic>>? _commandSub;
+  bool _isDarkMode = false;
+  int _nextHabitId = 0;
+  int _nextGoalId = 0;
+
   late DateTime _today;
   late DateTime _selectedDay;
   late List<DateTime> _weekDays;
 
-  // LISTA
+  // LISTA. Cada item lleva un 'id' estable: el reloj lo usa para referenciar
+  // el hábito/meta exacto en sus comandos (toggle_habit, update_goal).
   final List<Map<String, dynamic>> _habits = [
-    {'title': 'Leer 30 minutos', 'category': 'Personal', 'type': 'Diario', 'streak': 7, 'completed': true},
-    {'title': 'Tomar agua 2L', 'category': 'Personal', 'type': 'Diario', 'streak': 12, 'completed': true},
-    {'title': 'Hacer ejercicio', 'category': 'Personal', 'type': '3x semana', 'streak': 5, 'completed': false},
-    {'title': 'Estudiar inglés', 'category': 'Trabajo/Escuela', 'type': 'Diario', 'streak': 4, 'completed': false},
-    {'title': 'Hacer tarea', 'category': 'Trabajo/Escuela', 'type': 'Diario', 'streak': 15, 'completed': false},
+    {'id': 'h0', 'title': 'Leer 30 minutos', 'category': 'Personal', 'type': 'Diario', 'streak': 7, 'completed': true},
+    {'id': 'h1', 'title': 'Tomar agua 2L', 'category': 'Personal', 'type': 'Diario', 'streak': 12, 'completed': true},
+    {'id': 'h2', 'title': 'Hacer ejercicio', 'category': 'Personal', 'type': '3x semana', 'streak': 5, 'completed': false},
+    {'id': 'h3', 'title': 'Estudiar inglés', 'category': 'Trabajo/Escuela', 'type': 'Diario', 'streak': 4, 'completed': false},
+    {'id': 'h4', 'title': 'Hacer tarea', 'category': 'Trabajo/Escuela', 'type': 'Diario', 'streak': 15, 'completed': false},
   ];
 
   // Dentro de class _DashboardScreenState extends State<DashboardScreen>
 final List<Map<String, dynamic>> _goals = [
   {
+    'id': 'g0',
     'title': 'Completar 5 hábitos',
     'desc': 'Marcar como completados todos los hábitos del día',
     'progress': 80,
@@ -42,6 +51,7 @@ final List<Map<String, dynamic>> _goals = [
     'deadline': 'Vence: Hoy',
   },
   {
+    'id': 'g1',
     'title': 'Estudiar 2 horas',
     'desc': 'Dedicar tiempo a aprender algo nuevo',
     'progress': 50,
@@ -54,8 +64,9 @@ final List<Map<String, dynamic>> _goals = [
 // Creamos la función para añadir una nueva meta desde el diálogo
 void _addNewGoal(Map<String, dynamic> newGoal) {
   setState(() {
-    _goals.add(newGoal);
+    _goals.add({'id': 'g${_nextGoalId++ + 100}', ...newGoal});
   });
+  _pushStateToWatch();
 }
 
   @override
@@ -64,6 +75,65 @@ void _addNewGoal(Map<String, dynamic> newGoal) {
     _today = DateTime.now();
     _selectedDay = _today;
     _weekDays = _generateCurrentWeek();
+    _nextHabitId = _habits.length;
+    _nextGoalId = _goals.length;
+    _initBleServer();
+  }
+
+  Future<void> _initBleServer() async {
+    final granted = await _bleServer.requestPermissions();
+    if (!granted) {
+      // Sin estos permisos el reloj nunca va a poder encontrar/conectarse
+      // al teléfono. Podrías mostrar un diálogo explicando por qué se necesitan.
+      return;
+    }
+    await _bleServer.start();
+    _pushStateToWatch(); // Sincroniza el estado inicial en cuanto arranca.
+    _commandSub = _bleServer.commands.listen(_handleWatchCommand);
+  }
+
+  /// Empuja habits + goals + config al reloj. Se llama después de CADA
+  /// mutación de estado (agregar/tocar hábito, agregar/avanzar meta, tema).
+  void _pushStateToWatch() {
+    _bleServer.pushState(
+      habits: _habits,
+      goals: _goals,
+      isDarkMode: _isDarkMode,
+    );
+  }
+
+  /// Procesa comandos que llegan del reloj (toggle_habit, update_goal).
+  void _handleWatchCommand(Map<String, dynamic> command) {
+    final action = command['action'];
+    if (action == 'toggle_habit') {
+      final id = command['id'];
+      final idx = _habits.indexWhere((h) => h['id'] == id);
+      if (idx != -1) {
+        setState(() {
+          _habits[idx]['completed'] = !_habits[idx]['completed'];
+        });
+        _pushStateToWatch();
+      }
+    } else if (action == 'update_goal') {
+      final id = command['id'];
+      final progress = command['progress'];
+      final idx = _goals.indexWhere((g) => g['id'] == id);
+      if (idx != -1 && progress is int) {
+        setState(() {
+          _goals[idx]['progress'] = progress;
+          _goals[idx]['status'] = progress >= 100 ? 'Completado' : 'En progreso';
+        });
+        _pushStateToWatch();
+      }
+    }
+  }
+
+  @override
+  void dispose() {
+    _commandSub?.cancel();
+    _bleServer.stop();
+    _bleServer.dispose();
+    super.dispose();
   }
 
   List<DateTime> _generateCurrentWeek() {
@@ -81,6 +151,7 @@ void _addNewGoal(Map<String, dynamic> newGoal) {
   void _addNewHabit(String title, String category, String type) {
     setState(() {
       _habits.add({
+        'id': 'h${_nextHabitId++}',
         'title': title,
         'category': category,
         'type': type,
@@ -89,8 +160,7 @@ void _addNewGoal(Map<String, dynamic> newGoal) {
       });
     });
 
-    // Convertimos la lista a un mapa simple que acepte el canal nativo
-    _watch.sendMessage({'habits': _habits});
+    _pushStateToWatch();
   }
 
   // --- FUNCIÓN PARA ELIMINAR UN HÁBITO ---
@@ -316,8 +386,8 @@ void _addNewGoal(Map<String, dynamic> newGoal) {
             _habits[index]['completed'] = !_habits[index]['completed'];
           });
 
-          // ENVIAR ACTUALIZACIÓN AL RELOJ ---------------------------------------------------------------
-          _watch.sendMessage({'habits': _habits});
+          // ENVIAR ACTUALIZACIÓN AL RELOJ (servidor GATT vía BLE) --------------
+          _pushStateToWatch();
         },
       ),
       GoalsScreen( // Actualizado con la función requerida
@@ -332,6 +402,7 @@ void _addNewGoal(Map<String, dynamic> newGoal) {
               _goals[index]['status'] = 'En progreso';
             }
           });
+          _pushStateToWatch();
         },
       ),
 
@@ -342,6 +413,10 @@ void _addNewGoal(Map<String, dynamic> newGoal) {
       
       ConfigScreen(
         habits: _habits,
+        onDarkModeChanged: (value) {
+          setState(() => _isDarkMode = value);
+          _pushStateToWatch();
+        },
       ),
     ];
 

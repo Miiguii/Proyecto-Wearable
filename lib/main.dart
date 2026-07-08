@@ -3,7 +3,8 @@ import 'package:flutter/material.dart';
 import 'main_screens/welcome.dart';
 import 'main_screens/login_screen.dart';
 import 'main_screens/register_screen.dart';
-import 'screens/dashboard.dart';
+
+//import 'screens/dashboard.dart';
 //import 'screens/habitos.dart';
 
 void main() {
@@ -29,7 +30,6 @@ class MyApp extends StatelessWidget {
         '/login_screen': (context) => const LoginScreen(),
         '/register_screen': (context) => const RegisterScreen(),
         '/dashboard': (context) => const DashboardScreen(),
-        
       },
     );
   }

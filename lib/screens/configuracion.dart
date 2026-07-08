@@ -2,10 +2,12 @@ import 'package:flutter/material.dart';
 
 class ConfigScreen extends StatefulWidget {
   final List<Map<String, dynamic>> habits;
+  final ValueChanged<bool>? onDarkModeChanged;
 
   const ConfigScreen({
     super.key,
     required this.habits,
+    this.onDarkModeChanged,
   });
 
   @override
@@ -230,6 +232,7 @@ class _ConfigScreenState extends State<ConfigScreen> {
                       setState(() {
                         _isDarkMode = value;
                       });
+                      widget.onDarkModeChanged?.call(value);
                     },
                   ),
                 ),
