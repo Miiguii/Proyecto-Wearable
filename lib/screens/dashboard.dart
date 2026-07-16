@@ -1,7 +1,9 @@
 import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import '../services/ble_server_service.dart';
+import '../utils/screen_size.dart';
 import 'habitos.dart';
 import 'metas.dart';
 import 'stats.dart';
@@ -213,309 +215,341 @@ class _DashboardScreenState extends State<DashboardScreen> {
     String fechaFormateada,
     List<String> diasLetra,
   ) {
+    final ss = ScreenSize.of(context);
     return SafeArea(
-      child: SingleChildScrollView(
-        padding: const EdgeInsets.symmetric(horizontal: 20.0, vertical: 15.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // --- ENCABEZADO ---
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      child: Center(
+        child: ConstrainedBox(
+          constraints: BoxConstraints(maxWidth: ss.maxContentWidth),
+          child: SingleChildScrollView(
+            padding: EdgeInsets.symmetric(
+              horizontal: ss.gap(20),
+              vertical: ss.gap(15),
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
+                // --- ENCABEZADO ---
                 Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    const CircleAvatar(
-                      radius: 24,
-                      backgroundColor: Color(0xFFFFE382),
-                      child: Text(
-                        "YR",
-                        style: TextStyle(
-                          color: Color(0xFF0D253F),
-                          fontWeight: FontWeight.bold,
-                        ),
+                    Expanded(
+                      child: Row(
+                        children: [
+                          CircleAvatar(
+                            radius: ss.gap(24),
+                            backgroundColor: const Color(0xFFFFE382),
+                            child: Text(
+                              "YR",
+                              style: TextStyle(
+                                fontSize: ss.font(14),
+                                color: const Color(0xFF0D253F),
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                          ),
+                          SizedBox(width: ss.gap(12)),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  "¡Hola, Yaretzi\nRubio!",
+                                  style: TextStyle(
+                                    fontSize: ss.font(20),
+                                    fontWeight: FontWeight.bold,
+                                    height: 1.2,
+                                    color: const Color(0xFF0D253F),
+                                  ),
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                                SizedBox(height: ss.gap(2)),
+                                Text(
+                                  fechaFormateada,
+                                  style: TextStyle(
+                                    color: Colors.grey,
+                                    fontSize: ss.font(13),
+                                  ),
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
                       ),
                     ),
-                    const SizedBox(width: 12),
-                    Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        const Text(
-                          "¡Hola, Yaretzi\nRubio!",
-                          style: TextStyle(
-                            fontSize: 22,
-                            fontWeight: FontWeight.bold,
-                            height: 1.2,
-                            color: Color(0xFF0D253F),
+                    SizedBox(width: ss.gap(8)),
+                    Container(
+                      padding: EdgeInsets.symmetric(
+                        horizontal: ss.gap(10),
+                        vertical: ss.gap(6),
+                      ),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFFFB7A2).withOpacity(0.4),
+                        borderRadius: BorderRadius.circular(20),
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(
+                            Icons.local_fire_department,
+                            color: const Color(0xFFFF6B4A),
+                            size: ss.icon(18),
                           ),
-                        ),
-                        const SizedBox(height: 2),
-                        Text(
-                          fechaFormateada,
-                          style: const TextStyle(
-                            color: Colors.grey,
-                            fontSize: 14,
+                          SizedBox(width: ss.gap(4)),
+                          Text(
+                            "15",
+                            style: TextStyle(
+                              fontSize: ss.font(14),
+                              fontWeight: FontWeight.bold,
+                              color: const Color(0xFF0D253F),
+                            ),
                           ),
-                        ),
-                      ],
+                        ],
+                      ),
                     ),
                   ],
                 ),
+                SizedBox(height: ss.gap(20)),
+
+                // --- CALENDARIO SEMANAL ---
                 Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 12,
-                    vertical: 6,
-                  ),
+                  padding: ss.paddingAll(12),
                   decoration: BoxDecoration(
-                    color: const Color(0xFFFFB7A2).withOpacity(0.4),
-                    borderRadius: BorderRadius.circular(20),
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(30),
                   ),
                   child: Row(
-                    children: const [
-                      Icon(
-                        Icons.local_fire_department,
-                        color: Color(0xFFFF6B4A),
-                        size: 18,
-                      ),
-                      SizedBox(width: 4),
-                      Text(
-                        "15",
-                        style: TextStyle(
-                          fontWeight: FontWeight.bold,
-                          color: Color(0xFF0D253F),
+                    children: List.generate(_weekDays.length, (index) {
+                      DateTime day = _weekDays[index];
+                      String label = diasLetra[day.weekday % 7];
+                      String number = day.day.toString();
+                      bool isCompleted =
+                          day.isBefore(_today) && day.day != _today.day;
+
+                      // Expanded en vez de tamaño fijo: los 6 días se
+                      // reparten el ancho disponible y nunca se salen
+                      // de pantalla, sin importar el tamaño del teléfono.
+                      return Expanded(
+                        child: _buildCalendarDay(
+                          day,
+                          label,
+                          number,
+                          isCompleted: isCompleted,
+                        ),
+                      );
+                    }),
+                  ),
+                ),
+                SizedBox(height: ss.gap(15)),
+
+                // --- CARD PROGRESO GENERAL ---
+                Container(
+                  width: double.infinity,
+                  padding: ss.paddingAll(25),
+                  decoration: BoxDecoration(
+                    gradient: const LinearGradient(
+                      colors: [Color(0xFFE3DCF7), Color(0xFFFFF3D1)],
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                    ),
+                    borderRadius: BorderRadius.circular(35),
+                  ),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              "Progreso General",
+                              style: TextStyle(
+                                fontSize: ss.font(17),
+                                fontWeight: FontWeight.bold,
+                                color: const Color(0xFF0D253F),
+                              ),
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                            SizedBox(height: ss.gap(15)),
+                            Row(
+                              crossAxisAlignment: CrossAxisAlignment.baseline,
+                              textBaseline: TextBaseline.alphabetic,
+                              children: [
+                                Text(
+                                  "${(progressPercent * 100).toInt()}%",
+                                  style: TextStyle(
+                                    fontSize: ss.font(38),
+                                    fontWeight: FontWeight.w900,
+                                    color: const Color(0xFF0D253F),
+                                  ),
+                                ),
+                                SizedBox(width: ss.gap(8)),
+                                Flexible(
+                                  child: Text(
+                                    "completado\nhoy",
+                                    style: TextStyle(
+                                      fontSize: ss.font(13),
+                                      color: Colors.blueGrey,
+                                      height: 1.1,
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                            SizedBox(height: ss.gap(8)),
+                            Text(
+                              "$completedCount de ${_habits.length} hábitos",
+                              style: TextStyle(
+                                color: Colors.blueGrey,
+                                fontSize: ss.font(14),
+                              ),
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ],
                         ),
                       ),
+                      SizedBox(width: ss.gap(10)),
+                      Stack(
+                        alignment: Alignment.center,
+                        children: [
+                          SizedBox(
+                            width: ss.gap(80),
+                            height: ss.gap(80),
+                            child: CircularProgressIndicator(
+                              value: progressPercent,
+                              backgroundColor: Colors.white.withOpacity(0.5),
+                              color: Colors.white,
+                              strokeWidth: 10,
+                              strokeCap: StrokeCap.round,
+                            ),
+                          ),
+                          Text(
+                            "$completedCount/${_habits.length}",
+                            style: TextStyle(
+                              fontSize: ss.font(20),
+                              fontWeight: FontWeight.bold,
+                              color: const Color(0xFF0D253F),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+                SizedBox(height: ss.gap(15)),
+
+                // --- SECCIÓN: HÁBITOS DE HOY ---
+                Container(
+                  width: double.infinity,
+                  padding: ss.paddingAll(22),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(35),
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        "Hábitos de hoy",
+                        style: TextStyle(
+                          fontSize: ss.font(18),
+                          fontWeight: FontWeight.bold,
+                          color: const Color(0xFF0D253F),
+                        ),
+                      ),
+                      SizedBox(height: ss.gap(15)),
+                      ListView.separated(
+                        shrinkWrap: true,
+                        physics: const NeverScrollableScrollPhysics(),
+                        itemCount: _habits.length,
+                        separatorBuilder:
+                            (_, __) => SizedBox(height: ss.gap(12)),
+                        itemBuilder: (context, index) {
+                          final habit = _habits[index];
+                          return _buildHabitItem(
+                            index,
+                            habit['title'],
+                            habit['category'],
+                            habit['completed'],
+                          );
+                        },
+                      ),
+                    ],
+                  ),
+                ),
+                SizedBox(height: ss.gap(15)),
+
+                // --- SECCIÓN: METAS ACTIVAS ---
+                Container(
+                  width: double.infinity,
+                  padding: ss.paddingAll(22),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(35),
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        "Metas activas",
+                        style: TextStyle(
+                          fontSize: ss.font(18),
+                          fontWeight: FontWeight.bold,
+                          color: const Color(0xFF0D253F),
+                        ),
+                      ),
+                      SizedBox(height: ss.gap(20)),
+
+                      //Si no hay metas creadas todavía
+                      if (_goals.isEmpty)
+                        Padding(
+                          padding: EdgeInsets.symmetric(vertical: ss.gap(10)),
+                          child: const Text(
+                            "No tienes metas activas para hoy.",
+                            style: TextStyle(color: Colors.grey),
+                          ),
+                        )
+                      else
+                        // Mapeamos dinámicamente tu lista real '_goals'
+                        ListView.separated(
+                          shrinkWrap: true,
+                          physics: const NeverScrollableScrollPhysics(),
+                          itemCount:
+                              _goals.length > 3
+                                  ? 3
+                                  : _goals
+                                      .length, // Muestra máximo las primeras 3 en el Inicio
+                          separatorBuilder:
+                              (_, __) => SizedBox(height: ss.gap(20)),
+                          itemBuilder: (context, index) {
+                            final goal = _goals[index];
+                            double progressDouble =
+                                goal['progress'] /
+                                100.0; // Convierte de int (80) a double (0.8)
+
+                            // Alternamos los colores pastel bonitos de tus diseños Bento para cada meta
+                            List<Color> pastelColors = [
+                              const Color(0xFFD4C7F7),
+                              const Color(0xFFFFE382),
+                              const Color(0xFFFFB7A2),
+                            ];
+                            Color assignedColor =
+                                pastelColors[index % pastelColors.length];
+
+                            return _buildMetaItem(
+                              goal['title'],
+                              progressDouble,
+                              "${goal['progress']}%",
+                              assignedColor,
+                            );
+                          },
+                        ),
                     ],
                   ),
                 ),
               ],
             ),
-            const SizedBox(height: 20),
-
-            // --- CALENDARIO SEMANAL ---
-            Container(
-              padding: const EdgeInsets.all(15),
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(30),
-              ),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceAround,
-                children: List.generate(_weekDays.length, (index) {
-                  DateTime day = _weekDays[index];
-                  String label = diasLetra[day.weekday % 7];
-                  String number = day.day.toString();
-                  bool isCompleted =
-                      day.isBefore(_today) && day.day != _today.day;
-
-                  return _buildCalendarDay(
-                    day,
-                    label,
-                    number,
-                    isCompleted: isCompleted,
-                  );
-                }),
-              ),
-            ),
-            const SizedBox(height: 15),
-
-            // --- CARD PROGRESO GENERAL ---
-            Container(
-              width: double.infinity,
-              padding: const EdgeInsets.all(25),
-              decoration: BoxDecoration(
-                gradient: const LinearGradient(
-                  colors: [Color(0xFFE3DCF7), Color(0xFFFFF3D1)],
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
-                ),
-                borderRadius: BorderRadius.circular(35),
-              ),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      const Text(
-                        "Progreso General",
-                        style: TextStyle(
-                          fontSize: 18,
-                          fontWeight: FontWeight.bold,
-                          color: Color(0xFF0D253F),
-                        ),
-                      ),
-                      const SizedBox(height: 15),
-                      Row(
-                        crossAxisAlignment: CrossAxisAlignment.baseline,
-                        textBaseline: TextBaseline.alphabetic,
-                        children: [
-                          Text(
-                            "${(progressPercent * 100).toInt()}%",
-                            style: const TextStyle(
-                              fontSize: 42,
-                              fontWeight: FontWeight.w900,
-                              color: Color(0xFF0D253F),
-                            ),
-                          ),
-                          const SizedBox(width: 8),
-                          const Text(
-                            "completado\nhoy",
-                            style: TextStyle(
-                              fontSize: 13,
-                              color: Colors.blueGrey,
-                              height: 1.1,
-                            ),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 8),
-                      Text(
-                        "$completedCount de ${_habits.length} hábitos",
-                        style: const TextStyle(
-                          color: Colors.blueGrey,
-                          fontSize: 14,
-                        ),
-                      ),
-                    ],
-                  ),
-                  Stack(
-                    alignment: Alignment.center,
-                    children: [
-                      SizedBox(
-                        width: 90,
-                        height: 90,
-                        child: CircularProgressIndicator(
-                          value: progressPercent,
-                          backgroundColor: Colors.white.withOpacity(0.5),
-                          color: Colors.white,
-                          strokeWidth: 10,
-                          strokeCap: StrokeCap.round,
-                        ),
-                      ),
-                      Text(
-                        "$completedCount/${_habits.length}",
-                        style: const TextStyle(
-                          fontSize: 20,
-                          fontWeight: FontWeight.bold,
-                          color: Color(0xFF0D253F),
-                        ),
-                      ),
-                    ],
-                  ),
-                ],
-              ),
-            ),
-            const SizedBox(height: 15),
-
-            // --- SECCIÓN: HÁBITOS DE HOY ---
-            Container(
-              width: double.infinity,
-              padding: const EdgeInsets.all(22),
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(35),
-              ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const Text(
-                    "Hábitos de hoy",
-                    style: TextStyle(
-                      fontSize: 18,
-                      fontWeight: FontWeight.bold,
-                      color: Color(0xFF0D253F),
-                    ),
-                  ),
-                  const SizedBox(height: 15),
-                  ListView.separated(
-                    shrinkWrap: true,
-                    physics: const NeverScrollableScrollPhysics(),
-                    itemCount: _habits.length,
-                    separatorBuilder: (_, __) => const SizedBox(height: 12),
-                    itemBuilder: (context, index) {
-                      final habit = _habits[index];
-                      return _buildHabitItem(
-                        index,
-                        habit['title'],
-                        habit['category'],
-                        habit['completed'],
-                      );
-                    },
-                  ),
-                ],
-              ),
-            ),
-            const SizedBox(height: 15),
-
-            // --- SECCIÓN: METAS ACTIVAS ---
-            Container(
-              width: double.infinity,
-              padding: const EdgeInsets.all(22),
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(35),
-              ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const Text(
-                    "Metas activas",
-                    style: TextStyle(
-                      fontSize: 18,
-                      fontWeight: FontWeight.bold,
-                      color: Color(0xFF0D253F),
-                    ),
-                  ),
-                  const SizedBox(height: 20),
-
-                  //Si no hay metas creadas todavía
-                  if (_goals.isEmpty)
-                    const Padding(
-                      padding: EdgeInsets.symmetric(vertical: 10),
-                      child: Text(
-                        "No tienes metas activas para hoy.",
-                        style: TextStyle(color: Colors.grey),
-                      ),
-                    )
-                  else
-                    // Mapeamos dinámicamente tu lista real '_goals'
-                    ListView.separated(
-                      shrinkWrap: true,
-                      physics: const NeverScrollableScrollPhysics(),
-                      itemCount:
-                          _goals.length > 3
-                              ? 3
-                              : _goals
-                                  .length, // Muestra máximo las primeras 3 en el Inicio
-                      separatorBuilder: (_, __) => const SizedBox(height: 20),
-                      itemBuilder: (context, index) {
-                        final goal = _goals[index];
-                        double progressDouble =
-                            goal['progress'] /
-                            100.0; // Convierte de int (80) a double (0.8)
-
-                        // Alternamos los colores pastel bonitos de tus diseños Bento para cada meta
-                        List<Color> pastelColors = [
-                          const Color(0xFFD4C7F7),
-                          const Color(0xFFFFE382),
-                          const Color(0xFFFFB7A2),
-                        ];
-                        Color assignedColor =
-                            pastelColors[index % pastelColors.length];
-
-                        return _buildMetaItem(
-                          goal['title'],
-                          progressDouble,
-                          "${goal['progress']}%",
-                          assignedColor,
-                        );
-                      },
-                    ),
-                ],
-              ),
-            ),
-          ],
+          ),
         ),
       ),
     );
@@ -523,6 +557,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final ss = ScreenSize.of(context);
     int completedCount = _habits.where((h) => h['completed'] == true).length;
     double progressPercent =
         _habits.isEmpty ? 0.0 : completedCount / _habits.length;
@@ -628,10 +663,11 @@ class _DashboardScreenState extends State<DashboardScreen> {
             backgroundColor: Colors.white,
             selectedItemColor: const Color(0xFF0D253F),
             unselectedItemColor: Colors.grey,
-            selectedLabelStyle: const TextStyle(
+            selectedLabelStyle: TextStyle(
               fontWeight: FontWeight.bold,
-              fontSize: 12,
+              fontSize: ss.font(12),
             ),
+            unselectedLabelStyle: TextStyle(fontSize: ss.font(12)),
             items: List.generate(5, (index) {
               final labels = ['Inicio', 'Hábitos', 'Metas', 'Stats', 'Config'];
               final icons = [
@@ -643,9 +679,9 @@ class _DashboardScreenState extends State<DashboardScreen> {
               ];
               return BottomNavigationBarItem(
                 icon: Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 16,
-                    vertical: 8,
+                  padding: EdgeInsets.symmetric(
+                    horizontal: ss.gap(16),
+                    vertical: ss.gap(8),
                   ),
                   decoration: BoxDecoration(
                     color:
@@ -654,7 +690,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                             : Colors.transparent,
                     borderRadius: BorderRadius.circular(20),
                   ),
-                  child: Icon(icons[index]),
+                  child: Icon(icons[index], size: ss.icon(24)),
                 ),
                 label: labels[index],
               );
@@ -672,6 +708,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
     String number, {
     bool isCompleted = false,
   }) {
+    final ss = ScreenSize.of(context);
     bool isSelected =
         _selectedDay.year == day.year &&
         _selectedDay.month == day.month &&
@@ -684,7 +721,10 @@ class _DashboardScreenState extends State<DashboardScreen> {
     return GestureDetector(
       onTap: () => setState(() => _selectedDay = day),
       child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 12),
+        padding: EdgeInsets.symmetric(
+          horizontal: ss.gap(10),
+          vertical: ss.gap(12),
+        ),
         decoration: BoxDecoration(
           color: bgColor,
           borderRadius: BorderRadius.circular(20),
@@ -693,28 +733,32 @@ class _DashboardScreenState extends State<DashboardScreen> {
           children: [
             Text(
               label,
-              style: const TextStyle(
-                fontSize: 12,
+              style: TextStyle(
+                fontSize: ss.font(12),
                 color: Colors.grey,
                 fontWeight: FontWeight.bold,
               ),
             ),
-            const SizedBox(height: 5),
+            SizedBox(height: ss.gap(5)),
             Text(
               number,
-              style: const TextStyle(
-                fontSize: 16,
+              style: TextStyle(
+                fontSize: ss.font(16),
                 fontWeight: FontWeight.bold,
-                color: Color(0xFF0D253F),
+                color: const Color(0xFF0D253F),
               ),
             ),
-            const SizedBox(height: 5),
+            SizedBox(height: ss.gap(5)),
             if (isCompleted)
-              const Icon(Icons.check_circle, size: 14, color: Color(0xFF2B7A4B))
+              Icon(
+                Icons.check_circle,
+                size: ss.icon(14),
+                color: const Color(0xFF2B7A4B),
+              )
             else
               Icon(
                 Icons.circle_outlined,
-                size: 14,
+                size: ss.icon(14),
                 color: isSelected ? Colors.transparent : Colors.black12,
               ),
           ],
@@ -729,6 +773,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
     String category,
     bool completed,
   ) {
+    final ss = ScreenSize.of(context);
     return GestureDetector(
       onTap: () {
         setState(() {
@@ -737,7 +782,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
       },
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 200),
-        padding: const EdgeInsets.all(15),
+        padding: ss.paddingAll(15),
         decoration: BoxDecoration(
           color: completed ? const Color(0xFFC1EAD1) : const Color(0xFFF8F9FA),
           borderRadius: BorderRadius.circular(25),
@@ -746,26 +791,32 @@ class _DashboardScreenState extends State<DashboardScreen> {
           children: [
             Icon(
               completed ? Icons.check_circle : Icons.circle_outlined,
+              size: ss.icon(24),
               color: completed ? const Color(0xFF2B7A4B) : Colors.grey,
             ),
-            const SizedBox(width: 15),
-            Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  title,
-                  style: TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.w600,
-                    color: const Color(0xFF0D253F),
-                    decoration: completed ? TextDecoration.lineThrough : null,
+            SizedBox(width: ss.gap(15)),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    title,
+                    style: TextStyle(
+                      fontSize: ss.font(16),
+                      fontWeight: FontWeight.w600,
+                      color: const Color(0xFF0D253F),
+                      decoration: completed ? TextDecoration.lineThrough : null,
+                    ),
                   ),
-                ),
-                Text(
-                  category,
-                  style: const TextStyle(fontSize: 12, color: Colors.blueGrey),
-                ),
-              ],
+                  Text(
+                    category,
+                    style: TextStyle(
+                      fontSize: ss.font(12),
+                      color: Colors.blueGrey,
+                    ),
+                  ),
+                ],
+              ),
             ),
           ],
         ),
@@ -779,36 +830,40 @@ class _DashboardScreenState extends State<DashboardScreen> {
     String percentText,
     Color barColor,
   ) {
+    final ss = ScreenSize.of(context);
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            Text(
-              title,
-              style: const TextStyle(
-                fontSize: 15,
-                fontWeight: FontWeight.w600,
-                color: Color(0xFF0D253F),
+            Expanded(
+              child: Text(
+                title,
+                style: TextStyle(
+                  fontSize: ss.font(15),
+                  fontWeight: FontWeight.w600,
+                  color: const Color(0xFF0D253F),
+                ),
+                overflow: TextOverflow.ellipsis,
               ),
             ),
             Text(
               percentText,
-              style: const TextStyle(
-                fontSize: 14,
+              style: TextStyle(
+                fontSize: ss.font(14),
                 fontWeight: FontWeight.bold,
-                color: Color(0xFF0D253F),
+                color: const Color(0xFF0D253F),
               ),
             ),
           ],
         ),
-        const SizedBox(height: 8),
+        SizedBox(height: ss.gap(8)),
         ClipRRect(
           borderRadius: BorderRadius.circular(10),
           child: LinearProgressIndicator(
             value: progress,
-            minHeight: 10,
+            minHeight: ss.gap(10),
             backgroundColor: const Color(0xFFF0F2F5),
             color: barColor,
           ),
